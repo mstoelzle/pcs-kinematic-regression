@@ -118,6 +118,7 @@ def average_lockstep_euclidean_distance(segment1, segment2):
     )
 
 def determine_merges(strain_data, threshold):
+    
     T, N, _ = strain_data.shape
     
     # Step 1: Compute pairwise distances
@@ -151,39 +152,28 @@ def determine_merges(strain_data, threshold):
     if current_merge:
         merge_candidates.append(current_merge)
 
-    # Step 3: Check extremes of merging groups
-    final_merges = []
-    for group in merge_candidates:
-        if not group:
-            continue
-        valid_merge = True
-        if average_lockstep_euclidean_distance(strain_data[:, group[0], :], strain_data[:, group[-1], :]) > threshold:
-            valid_merge = False
+    # # Step 3: Check extremes of merging groups
+    # final_merges = []
+    # for group in merge_candidates:
+    #     if not group:
+    #         continue
+    #     valid_merge = True
+    #     if average_lockstep_euclidean_distance(strain_data[:, group[0], :], strain_data[:, group[-1], :]) > threshold:
+    #         valid_merge = False
         
-        if valid_merge:
-            final_merges.append(group)
-        else:
-            # If the extremes are not valid, split the group into smaller valid groups
-            subgroup = [group[0]]
-            for i in range(1, len(group)):
-                if average_lockstep_euclidean_distance(strain_data[:, subgroup[0], :], strain_data[:, group[i], :]) <= threshold:
-                    subgroup.append(group[i])
-                else:
-                    final_merges.append(subgroup)
-                    subgroup = [group[i]]
-            if subgroup:
-                final_merges.append(subgroup)
+    #     if valid_merge:
+    #         final_merges.append(group)
+    #     else:
+    #         # If the extremes are not valid, split the group into smaller valid groups
+    #         subgroup = [group[0]]
+    #         for i in range(1, len(group)):
+    #             if average_lockstep_euclidean_distance(strain_data[:, subgroup[0], :], strain_data[:, group[i], :]) <= threshold:
+    #                 subgroup.append(group[i])
+    #             else:
+    #                 final_merges.append(subgroup)
+    #                 subgroup = [group[i]]
+    #         if subgroup:
+    #             final_merges.append(subgroup)
 
-    # Step 4: Recompute strain data by averaging out among the new segment groups
-    new_strain_data = np.zeros((T, len(final_merges), 3))
-    for i, group in enumerate(final_merges):
-        if len(group) == 1: 
-            # single segment
-            new_strain_data[:, i, :] = strain_data[:, group[0], :]
-        else: 
-            # need to average out strain data across the group
-            new_strain_data[:, i, :] = np.mean(strain_data[:, group[0]:group[-1], :], axis=1)
-
-
-    return final_merges, new_strain_data
+    return merge_candidates
     
