@@ -4,12 +4,6 @@ import numpy as np
 from scipy.interpolate import splprep, splev
 from utils import frame_capture, order_points
 
-num_segments = 1
-params = {"l": 1e-1 * np.ones((num_segments,))}
-# params = {"l": np.array([1e-1, 5e-2])}
-video_height = 2360
-ppm = video_height / (1.6 * np.sum(params["l"]))
-
 def get_task_pose(video_path, ppm):
 
     # Path to video file 
