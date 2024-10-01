@@ -30,6 +30,13 @@ def get_task_pose(video_path, ppm):
 
         print('Image:' + str(count))
 
+        # if count % 10 == 0:
+        #     cv2.namedWindow('Soft Manipulator with Fitted Curve', cv2.WINDOW_NORMAL)
+        #     cv2.imshow('Soft Manipulator with Fitted Curve', original_image)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
+        #     cv2.imwrite(f'original_image_{count}.jpg',original_image)
+
         # Convert to grayscale
         gray = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
 
@@ -38,13 +45,15 @@ def get_task_pose(video_path, ppm):
 
         thresh = 255 - thresh
 
-        # cv2.namedWindow('Soft Manipulator with Fitted Curve', cv2.WINDOW_NORMAL)
-        # cv2.imshow('Soft Manipulator with Fitted Curve', thresh)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
+        # if count % 10 == 0:
+        #     cv2.namedWindow('Soft Manipulator with Fitted Curve', cv2.WINDOW_NORMAL)
+        #     cv2.imshow('Soft Manipulator with Fitted Curve', thresh)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
+        #     cv2.imwrite(f'thresh_{count}.jpg', thresh)
 
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if (cv2.contourArea(c) > 500 and cv2.contourArea(c) < 2200)]
+        contours = [c for c in contours if (cv2.contourArea(c) > 500 and cv2.contourArea(c) < 8000)]
 
         # Draw one contour only for visualisation purposes
         # rect_contours_img = original_image.copy()
@@ -78,7 +87,8 @@ def get_task_pose(video_path, ppm):
         poses_frame = [
             np.array([
                 (rect[0][0] - original_image.shape[1]//2)/ppm, # x
-                ((1-0.2)*original_image.shape[0] - rect[0][1])/ppm, # y
+                # ((1-0.2)*original_image.shape[0] - rect[0][1])/ppm, # y
+                ((1-0.37)*original_image.shape[0] - rect[0][1])/ppm, # y
                 rect[2]
             ]) for rect in rect_list
         ]
@@ -101,14 +111,22 @@ def get_task_pose(video_path, ppm):
         box_list[:] = [box_list[i] for i in new_idx_order]
         rect_list[:] = [rect_list[i] for i in new_idx_order]    
 
-        # if count>63:
-        #     for i, box in enumerate(box_list):
-        #         rect_contours_img = original_image.copy()
-        #         cv2.drawContours(rect_contours_img, [box], 0, (0,0,255), 2)
-        #         cv2.namedWindow('Soft Manipulator with Fitted Curve', cv2.WINDOW_NORMAL)
-        #         cv2.imshow('Soft Manipulator with Fitted Curve', rect_contours_img)
-        #         cv2.waitKey(0)
-        #         cv2.destroyAllWindows()
+        # if count % 10 == 0:
+        #     rect_contours_img = original_image.copy()
+        #     cv2.drawContours(rect_contours_img, box_list[1:], -1, (0,0,255), 4)
+        #     cv2.namedWindow('Soft Manipulator with Fitted Curve', cv2.WINDOW_NORMAL)
+        #     cv2.imshow('Soft Manipulator with Fitted Curve', rect_contours_img)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
+        #     cv2.imwrite(f'min_area_contours_{count}.jpg', rect_contours_img)
+
+        # for i, box in enumerate(box_list):
+        #     rect_contours_img = original_image.copy()
+        #     cv2.drawContours(rect_contours_img, [box], 0, (0,0,255), 2)
+        #     cv2.namedWindow('Soft Manipulator with Fitted Curve', cv2.WINDOW_NORMAL)
+        #     cv2.imshow('Soft Manipulator with Fitted Curve', rect_contours_img)
+        #     cv2.waitKey(0)
+        #     cv2.destroyAllWindows()
 
         new_poses_frame = np.array(new_poses_frame)
         # new_poses_frame[0,:2] = np.array([0,0]) # the first point should have coordinates [0,0]

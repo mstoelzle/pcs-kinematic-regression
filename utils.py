@@ -2,6 +2,19 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib
+matplotlib.rcParams['animation.ffmpeg_path'] = "C:\\Users\\Ricardo Valadas\\Downloads\\ffmpeg-7.0.2-essentials_build\\ffmpeg-7.0.2-essentials_build\\bin\\ffmpeg.exe"
+# import matplotlib as mpl
+# mpl.rcParams.update(mpl.rcParamsDefault)
+
+# Plotting settings
+plt.rc('font', family='serif', serif='Times')
+plt.rc('text', usetex=True)
+# plt.rc('xtick', labelsize=10)
+# plt.rc('ytick', labelsize=10)
+# plt.rc('axes', labelsize=10)
+# width = 3.487 # for ieee two column report
+
 
 # string of strains for plotting
 string_strains = ['Bending', 'Shear', 'Axial']
@@ -67,6 +80,11 @@ def order_points(points, ind=0):
 def inverse_kinematics(pose_data, eps, s, plot=True):
     T, N, _ = pose_data.shape
 
+    # relative_pose_data = np.zeros((T,N-1,3))
+    # for i in range(T):
+    #     for j in range(N-1):
+    #         relative_pose_data[i,j,:2] = 
+
     # Compute the relative tranformation between each rectangle
     relative_pose_data = [np.diff(pose_frame, axis=0) for pose_frame in list(pose_data)]
     relative_pose_data = np.array(relative_pose_data)
@@ -80,6 +98,7 @@ def inverse_kinematics(pose_data, eps, s, plot=True):
     px = relative_pose_data[:,:,0]
     py = relative_pose_data[:,:,1]
     theta = relative_pose_data[:,:,2]
+
     # add small eps for numerical stability
     th_sign = np.sign(theta)
     # set zero sign to 1 (i.e. positive)
@@ -103,21 +122,53 @@ def inverse_kinematics(pose_data, eps, s, plot=True):
     if plot:
         dt = 1e-3
         time_arr = np.arange(0.0, T*dt, dt)
-        fig, ax = plt.subplots(3,1)
+        fig, ax = plt.subplots(3,1,sharex=True)
+        # fig.subplots_adjust(left=.15, bottom=.16, right=.99, top=.97)
         for strain in range(3):
             ax[strain].grid(True)
             ax[strain].set_ylabel(string_strains[strain])
 
             for seg in range(N-1):
                 if seg == 0:
+                    # ax[strain].plot(time_arr, config_data[:, seg, strain], '.-', color='0', label='seg:'+str(seg))
                     ax[strain].plot(time_arr, config_data[:, seg, strain], color='0', label='seg:'+str(seg))
                 elif seg == 1:
+                    # ax[strain].plot(time_arr, config_data[:, seg, strain], '.-', color='0.8', label='seg:'+str(seg))
                     ax[strain].plot(time_arr, config_data[:, seg, strain], color='0.8', label='seg:'+str(seg))
                 else:
+                    # ax[strain].plot(time_arr, config_data[:, seg, strain], '.-', label='seg:'+str(seg))
                     ax[strain].plot(time_arr, config_data[:, seg, strain], label='seg:'+str(seg))
         plt.xlabel('Time [s]')
-        fig.suptitle('Initial strain data')
+        fig.suptitle('Initial strain data - ' + str(N-1) + ' segments')
+        # fig.set_size_inches(width, width / 1.618 * (3 / 1))
         plt.show()
+
+    return config_data
+
+def inverse_kinematics_direct(pose_end_rel, eps, s):
+    px = pose_end_rel[:,0]
+    py = pose_end_rel[:,1]
+    theta = pose_end_rel[:,2]
+
+    # add small eps for numerical stability
+    th_sign = np.sign(theta)
+    # set zero sign to 1 (i.e. positive)
+    th_sign = np.where(th_sign == 0, 1, th_sign)
+    # add eps to theta
+    # theta_eps = theta + th_sign * eps
+    theta_eps = np.select(
+        [np.abs(theta) < eps, np.abs(theta) >= eps],
+        [th_sign*eps, theta]
+    )
+
+    # Compute the strains from pose through closed-form IK
+    strain_data = np.zeros((pose_end_rel.shape[0], 3))
+    strain_data[:,0] = theta_eps / s # bending strain
+    strain_data[:,1] = ( theta_eps / (2*s) ) * (py - (px*np.sin(theta_eps))/(np.cos(theta_eps) - 1)) # shear strain
+    strain_data[:,2] = ( theta_eps / (2*s) ) * (-px - (py*np.sin(theta_eps))/(np.cos(theta_eps) - 1)) # axial strain
+
+    config_data = strain_data.copy()
+    config_data[:,2] = config_data[:,2] - 1 # from strain to configuration variable (axial)
 
     return config_data
 
@@ -134,7 +185,11 @@ def forward_kinematics(config_data, s, eps, pose_previous_frame):
     # set zero sign to 1 (i.e. positive)
     k_be_sign = np.where(k_be_sign == 0, 1, k_be_sign)
     # add eps to bending
-    k_be_eps = k_be + k_be_sign * eps
+    # k_be_eps = k_be + k_be_sign * eps
+    k_be_eps = np.select(
+        [np.abs(k_be) < eps, np.abs(k_be) >= eps],
+        [k_be_sign*eps, k_be]
+    )
 
     # Compute the pose from strains through closed-form FK
     
@@ -170,6 +225,91 @@ def forward_kinematics(config_data, s, eps, pose_previous_frame):
 
     return pose_base_frame
 
+# def compute_task_error(pose_data, config_data_itrs, seg_length_itrs, eps):
+#     # point coordinates of the points where the error will be calculated
+#     s_image_cum = np.cumsum(seg_length_itrs[0])
+
+#     for itr in range(1, len(seg_length_itrs)):
+#         # cumsum of the segment lengths
+#         s_itr_cum = np.cumsum(seg_length_itrs[itr])
+#         # add zero to the beginning of the array
+#         s_itr_cum_padded = np.concatenate([np.array([0.0]), s_itr_cum], axis=0, dtype=np.float32)
+
+#     T, N, _ = config_data_itrs[0].shape
+#     pose_data_iterations = []
+#     error_metric_iterations = []
+#     for itr in range(1, len(seg_length_itrs)):
+#         # cumsum of the segment lengths
+#         s_itr_cum = np.cumsum(seg_length_itrs[itr])
+#         # add zero to the beginning of the array
+#         s_itr_cum_padded = np.concatenate([np.array([0.0]), s_itr_cum], axis=0, dtype=np.float32)
+
+#         # pose of the segment frame to which the FK are being computed w.r.t
+#         # for the first segment, it's the base frame, which is always the same at every frame
+#         pose_previous_frame = np.zeros((T,3))
+#         prev_segment_idx = 0
+
+#         pose_itr = np.zeros((T,N,3))
+#         for id_seg, s_point in enumerate(s_image_cum):
+#             # determine in which segment the point is located
+#             # use argmax to find the last index where the condition is true
+#             s_point = np.float32(s_point)
+#             segment_idx = (
+#                 s_itr_cum.shape[0] - 1 - np.argmax((s_point > s_itr_cum_padded[:-1])[::-1]).astype(int)
+#             )
+            
+#             if segment_idx != prev_segment_idx:
+#                 pose_previous_frame = pose_itr[:, id_seg - 1, :]
+#                 prev_segment_idx = segment_idx
+
+#             # point coordinate along the segment in the interval [0, l_segment]
+#             s_segment = s_point - s_itr_cum_padded[segment_idx]
+
+#             pose = forward_kinematics(config_data_itrs[itr][:,segment_idx,:], s_segment, eps, pose_previous_frame)
+#             pose_itr[:,id_seg,:] = pose
+        
+#         pose_data_iterations.append(pose_itr)
+
+#         # Create the figure and axis
+#         fig, ax = plt.subplots()
+#         ax.set_xlim(-0.1, 0.05)
+#         ax.set_ylim(-0.03, 0.1)
+#         ax.grid(True)
+
+#         # Initialize the scatter plots for A and B
+#         plot_pose_data, = ax.plot([], [], 'b-o', label='Original image')
+#         plot_pose_itr, = ax.plot([], [], 'r-o', label= str(itr) + ' merging iter. -> ' + str(len(s_itr_cum)) + ' segments')
+
+#         # Initialize the legend
+#         ax.legend()
+
+#         # Initialization function
+#         def init():
+#             plot_pose_data.set_data([], [])
+#             plot_pose_itr.set_data([], [])
+#             return plot_pose_data, plot_pose_itr
+
+#         # Update function
+#         def update(frame):
+#             plot_pose_data.set_data(pose_data[frame,:,0], pose_data[frame,:,1])
+#             plot_pose_itr.set_data(pose_itr[frame,:,0], pose_itr[frame,:,1])
+#             return plot_pose_data, plot_pose_itr
+
+#         # Create the animation
+#         ani = FuncAnimation(fig, update, frames=T, init_func=init, blit=True, repeat=True, interval=5)
+#         plt.show()
+#         # if itr == len(config_data_itrs) - 1:
+#         #     ani.save(filename = f"results/ns-1_pac/error_animation/position_video_animation.gif", writer=matplotlib.animation.PillowWriter(fps=30) )
+
+#         print('Iteration ' + str(itr) + ':')
+#         error_position = np.mean(np.linalg.norm(pose_data[:,1:,:2] - pose_itr[:,:,:2], axis=2))
+#         print('\tmean position error: ' + str(error_position) + ' [m]')
+#         error_angle = np.mean(np.abs(pose_data[:,1:,2] - pose_itr[:,:,2]))*180/np.pi
+#         print('\tmean angle error: ' + str(error_angle) + ' [deg]')
+#         error_metric_iterations.append(np.array([error_position, error_angle]))
+
+#     return pose_data_iterations, error_metric_iterations
+
 def compute_task_error(pose_data, config_data_itrs, seg_length_itrs, eps):
     # point coordinates of the points where the error will be calculated
     s_image_cum = np.cumsum(seg_length_itrs[0])
@@ -181,7 +321,7 @@ def compute_task_error(pose_data, config_data_itrs, seg_length_itrs, eps):
         # cumsum of the segment lengths
         s_itr_cum = np.cumsum(seg_length_itrs[itr])
         # add zero to the beginning of the array
-        s_itr_cum_padded = np.concatenate([np.array([0.0]), s_itr_cum], axis=0)
+        s_itr_cum_padded = np.concatenate([np.array([0.0]), s_itr_cum], axis=0, dtype=np.float32)
 
         # pose of the segment frame to which the FK are being computed w.r.t
         # for the first segment, it's the base frame, which is always the same at every frame
@@ -192,6 +332,7 @@ def compute_task_error(pose_data, config_data_itrs, seg_length_itrs, eps):
         for id_seg, s_point in enumerate(s_image_cum):
             # determine in which segment the point is located
             # use argmax to find the last index where the condition is true
+            s_point = np.float32(s_point)
             segment_idx = (
                 s_itr_cum.shape[0] - 1 - np.argmax((s_point > s_itr_cum_padded[:-1])[::-1]).astype(int)
             )
@@ -210,13 +351,14 @@ def compute_task_error(pose_data, config_data_itrs, seg_length_itrs, eps):
 
         # Create the figure and axis
         fig, ax = plt.subplots()
-        ax.set_xlim(-0.25, 0.25)
-        ax.set_ylim(0, 0.25)
+        ax.set_xlim(-0.2, 0.2)
+        ax.set_ylim(-0.1, 0.15)
+        ax.grid(True)
 
         # Initialize the scatter plots for A and B
         plot_pose_data, = ax.plot([], [], 'b-o', label='Original image')
-        plot_pose_itr, = ax.plot([], [], 'r-o', label= str(itr) + ' merging iter. -> ' + str(len(s_itr_cum)) + ' segments')
-
+        # plot_pose_itr, = ax.plot([], [], 'r-o', label= str(itr) + ' merging iter. -> ' + str(len(s_itr_cum)) + ' segments')
+        plot_pose_itr, = ax.plot([], [], 'r-o', label= 'Model ' + str(len(s_itr_cum)) + ' segments')
         # Initialize the legend
         ax.legend()
 
@@ -235,9 +377,12 @@ def compute_task_error(pose_data, config_data_itrs, seg_length_itrs, eps):
         # Create the animation
         ani = FuncAnimation(fig, update, frames=T, init_func=init, blit=True, repeat=True, interval=5)
         plt.show()
-        # ani.save(filename = f"results/error_metrics/position_video_animation.gif", writer='pillow')
+        # if itr == len(config_data_itrs) - 1:
+        # "C:\Users\Ricardo Valadas\Downloads\ffmpeg-7.0.2-essentials_build\ffmpeg-7.0.2-essentials_build\bin\ffmpeg.exe"
+        # ani.save(filename = f"results/ns-1_pac/error_animation/position_video_animation.mp4", writer=matplotlib.animation.FFMpegWriter(fps=100) )
+        # ani.save(filename = f"results/ns-1_pac/error_animation/position_video_animation.gif", writer=matplotlib.animation.PillowWriter(fps=70) )
 
-        print('Iteration 1:')
+        print('Iteration ' + str(itr) + ':')
         error_position = np.mean(np.linalg.norm(pose_data[:,1:,:2] - pose_itr[:,:,:2], axis=2))
         print('\tmean position error: ' + str(error_position) + ' [m]')
         error_angle = np.mean(np.abs(pose_data[:,1:,2] - pose_itr[:,:,2]))*180/np.pi
@@ -263,11 +408,19 @@ def determine_merges(strain_data, threshold):
 
     fig, ax = plt.subplots(1,1)
     ax.plot(np.arange(1, len(pairwise_distances)+1), pairwise_distances, 'b:o')
+    ax.axhline(threshold, linestyle='--', color='0', lw=2)
+    # ax.fill_between(np.arange(1, len(pairwise_distances)+1), 0, 0.2, where=pairwise_distances < threshold, color='green', alpha=0.2)
+    # ax.axvspan(1, 19, color='green', alpha=0.2)
+    ax.axvspan(1, 8, color='green', alpha=0.2)
+    ax.axvspan(8, 19, color='blue', alpha=0.2)
+    # ax.axvspan(14, 19, color='red', alpha=0.2)
     ax.grid(True)
-    ax.set_ylabel('Lock-step Strain distance')
-    ax.set_xlabel('Id Segment pair')
+    ax.set_ylabel(r'$\bar{d}_{i,i+1}$ [dimensionless]')
+    ax.set_xlabel('Pair of adjacent segments')
     ax.set_xticks(np.arange(1, len(pairwise_distances)+1))
+    fig.set_size_inches(5, 5 / 1.618 )
     plt.show()
+    plt.savefig('distance_plot.pdf', bbox_inches='tight')
 
     # Step 2: Initial merges
     merge_candidates = []
