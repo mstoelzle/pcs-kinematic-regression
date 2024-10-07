@@ -15,6 +15,7 @@ This repository implements a Kinematic Regression approach to obtain configurati
 * `soft_manipulator_curve_fitting.py` implements the function `get_task_pose` which is responsible to extract the task space pose from the video.
 * `segment_merging_algorithm.py` contains the algorithm for merging the initial N segments.
 * `utils.py` has auxiliary functions used across the above three files.
+* `tradeoff_plots.py` generates the position and orientation errors as functions of the number of segments (i.e. the threshold) chosen
 
 ## Dependencies
 * numpy

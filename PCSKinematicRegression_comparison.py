@@ -7,11 +7,11 @@ from utils import inverse_kinematics, compute_task_error, forward_kinematics
 from segment_merging_algorithm import segment_merging_algorithm, segment_merging_algorithm_no_average
 
 ######## Define initial parameters ###########
-num_segments = 2
-# params = {"l": 1e-1 * np.ones((num_segments,))}
+num_segments = 1
+params = {"l": 1e-1 * np.ones((num_segments,))}
 # params = {"l": 0.15 * np.ones((num_segments,))}
 # params = {"l": np.array([0.05, 0.1, 0.06])}
-params = {"l": np.array([0.07, 0.1])}
+# params = {"l": np.array([0.07, 0.1])}
 params["total_length"] = np.sum(params["l"])
 # params = {"l": np.array([1e-1, 5e-2])}
 video_height = 2360
@@ -30,7 +30,7 @@ get_configurations = True
 string_strains = ['Bending', 'Shear', 'Axial']
 
 # STEP 1: Check videos and actuation
-videos_folder = f"videos/ns-{num_segments}_end-to-end/"
+videos_folder = f"videos/ns-{num_segments}_high_shear_stiffness/"
 # videos_folder = f"videos/ns-{num_segments}_homogeneous/"
 # videos_folder = f"videos/ns-{num_segments}_test/"
 # videos_folder = f"videos/ns-{num_segments}_pac/"
@@ -103,22 +103,22 @@ if get_configurations:
         # STEP 7: Plot q, q_dot, q_ddot for each strain
         
         time_arr = np.arange(0.0, T*dt, dt)
-        for strain in range(3):
-            fig, ax = plt.subplots(3,1)
-            fig.suptitle(string_strains[strain] + ' data')
+        # for strain in range(3):
+        #     fig, ax = plt.subplots(3,1)
+        #     fig.suptitle(string_strains[strain] + ' data')
 
-            ax[0].grid(True)
-            ax[0].set_ylabel('$\ddot{q}$')
-            ax[1].grid(True)
-            ax[1].set_ylabel('$\dot{q}$')
-            ax[2].grid(True)
-            ax[2].set_ylabel('$q$')
-            for seg in range(N_SEG):
-                ax[0].plot(time_arr, q_dd[:, seg, strain], label='seg:'+str(seg))
-                ax[1].plot(time_arr, q_d[:, seg, strain], label='seg:'+str(seg))
-                ax[2].plot(time_arr, q[:, seg, strain], label='seg:'+str(seg))
-            plt.xlabel('Time [s]')
-            plt.show()
+        #     ax[0].grid(True)
+        #     ax[0].set_ylabel('$\ddot{q}$')
+        #     ax[1].grid(True)
+        #     ax[1].set_ylabel('$\dot{q}$')
+        #     ax[2].grid(True)
+        #     ax[2].set_ylabel('$q$')
+        #     for seg in range(N_SEG):
+        #         ax[0].plot(time_arr, q_dd[:, seg, strain], label='seg:'+str(seg))
+        #         ax[1].plot(time_arr, q_d[:, seg, strain], label='seg:'+str(seg))
+        #         ax[2].plot(time_arr, q[:, seg, strain], label='seg:'+str(seg))
+        #     plt.xlabel('Time [s]')
+        #     plt.show()
 
         # STEP 8: Append to the saving variables
         X_i = np.concatenate(
@@ -133,5 +133,5 @@ if get_configurations:
         X.append(X_i)
         Xdot.append(Xdot_i)
 
-    np.save(f"results/ns-{num_segments}/config_data/" + "X.npy", X)
-    np.save(f"results/ns-{num_segments}/config_data/" + "Xdot.npy", Xdot)
+    np.save(f"results/ns-{num_segments}_high_shear_stiffness/config_data/" + "X.npy", X)
+    np.save(f"results/ns-{num_segments}_high_shear_stiffness/config_data/" + "Xdot.npy", Xdot)
