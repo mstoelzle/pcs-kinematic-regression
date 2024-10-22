@@ -65,18 +65,30 @@ config_data = np.array(config_data_list).reshape((-1,20,3))
 pose_data = np.array(pose_data_list).reshape((-1,21,3))
 Chi_raw = np.copy(pose_data)
 
+# initialize the time array
+ts = np.arange(0, pose_data.shape[0]*dt, dt)
+
 # number of time steps per video sequence
-T = int(pose_data.shape[0] / len(video_names))
+num_videos = len(video_names)
+T = int(pose_data.shape[0] / num_videos)
 
 # filter the poses with Savotzky-Golay filter and differentiate to get velocities and accelerations
-Chi = savgol_filter(Chi_raw, 5*5, polyorder=3, deriv=0, axis=0)
-Chi_d = np.gradient(Chi, dt, axis=0, edge_order=2)
-# # the the velocity at the first time step to zero
-# Chi_d[::T] = 0.0
-print("Chi_d\n" , Chi_d)
-Chi_dd = np.gradient(Chi_d, dt, axis=0, edge_order=2)
-# # the the acceleration at the first time step to zero
-# Chi_dd[::T] = 0.0
+# smooth the data
+Chi, Chi_d, Chi_dd = [], [], []
+for i in range(num_videos):
+    savgol_window_length = 25
+    Chi_i_raw = Chi_raw[i * T:(i + 1) * T]
+    Chi_i = savgol_filter(Chi_i_raw, window_length=savgol_window_length, polyorder=3, deriv=0, delta=dt, axis=0)
+    Chi_d_i = savgol_filter(Chi_i_raw, window_length=savgol_window_length, polyorder=3, deriv=1, delta=dt, axis=0)
+    Chi_dd_i = savgol_filter(Chi_i_raw, window_length=savgol_window_length, polyorder=3, deriv=2, delta=dt, axis=0)
+    Chi.append(Chi_i)
+    Chi_d.append(Chi_d_i)
+    Chi_dd.append(Chi_dd_i)
+Chi, Chi_d, Chi_dd = np.concatenate(Chi, axis=0), np.concatenate(Chi_d, axis=0), np.concatenate(Chi_dd, axis=0)
+# Chi = Chi_raw
+# Chi_d = np.gradient(Chi, dt, axis=0)
+# Chi_dd = np.gradient(Chi_d, dt, axis=0)
+
 
 # concatenate the pose datasets
 Y = np.concatenate([Chi.reshape(Chi.shape[0], -1), Chi_d.reshape(Chi_d.shape[0], -1)], axis=-1)
@@ -90,8 +102,6 @@ np.save(pose_dir / "Y.npy", Y)
 np.save(pose_dir / "Ydot.npy", Y_d)
 
 # plot the positions
-print("Config data shape: ", Chi.shape)
-ts = np.arange(0, Chi.shape[0]*dt, dt)
 plt.figure(num="End effector poses")
 # plot the raw data
 plt.plot(ts, Chi_raw[:,-1,0], linestyle=":", label=r'$x$')
