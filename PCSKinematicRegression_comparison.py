@@ -63,7 +63,7 @@ for video in video_names:
 
 config_data = np.array(config_data_list).reshape((-1,20,3))
 pose_data = np.array(pose_data_list).reshape((-1,21,3))
-Chi_raw = np.copy(config_data)
+Chi_raw = np.copy(pose_data)
 
 # number of time steps per video sequence
 T = int(pose_data.shape[0] / len(video_names))
@@ -91,17 +91,17 @@ np.save(pose_dir / "Ydot.npy", Y_d)
 # plot the positions
 print("Config data shape: ", Chi.shape)
 ts = np.arange(0, Chi.shape[0]*dt, dt)
-plt.figure(num="End effector positions")
+plt.figure(num="End effector poses")
 # plot the raw data
 plt.plot(ts, Chi_raw[:,-1,0], linestyle=":", label='$x$')
 plt.plot(ts, Chi_raw[:,-1,1], linestyle=":", label='$y$')
-plt.plot(ts, Chi_raw[:,-1,2], linestyle=":", label='$z$')
+plt.plot(ts, Chi_raw[:,-1,2], linestyle=":", label='$\theta$')
 # reset the color cycle
 plt.gca().set_prop_cycle(None)
 # plot the filtered data
 plt.plot(ts, Chi[:,-1,0], label=r'$\tilde{x}$')
 plt.plot(ts, Chi[:,-1,1], label=r'$\tilde{y}$')
-plt.plot(ts, Chi[:,-1,2], label=r'$\tilde{z}$')
+plt.plot(ts, Chi[:,-1,2], label=r'$\tilde{\theta}$')
 plt.legend()
 plt.grid(True)
 plt.show()
