@@ -85,6 +85,7 @@ print("Y shape: ", Y.shape, "Y_d shape: ", Y_d.shape)
 # save the data
 pose_dir = Path(f"results/ns-{num_segments}/pose_data")
 pose_dir.mkdir(parents=True, exist_ok=True)
+np.save(pose_dir / "Chi_raw.npy", Chi_raw.reshape(Chi_raw.shape[0], -1))
 np.save(pose_dir / "Y.npy", Y)
 np.save(pose_dir / "Ydot.npy", Y_d)
 
@@ -93,9 +94,9 @@ print("Config data shape: ", Chi.shape)
 ts = np.arange(0, Chi.shape[0]*dt, dt)
 plt.figure(num="End effector poses")
 # plot the raw data
-plt.plot(ts, Chi_raw[:,-1,0], linestyle=":", label='$x$')
-plt.plot(ts, Chi_raw[:,-1,1], linestyle=":", label='$y$')
-plt.plot(ts, Chi_raw[:,-1,2], linestyle=":", label='$\theta$')
+plt.plot(ts, Chi_raw[:,-1,0], linestyle=":", label=r'$x$')
+plt.plot(ts, Chi_raw[:,-1,1], linestyle=":", label=r'$y$')
+plt.plot(ts, Chi_raw[:,-1,2], linestyle=":", label=r'$\theta$')
 # reset the color cycle
 plt.gca().set_prop_cycle(None)
 # plot the filtered data
