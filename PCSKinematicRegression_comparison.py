@@ -2,11 +2,13 @@ import os
 import numpy as np
 from soft_manipulator_curve_fitting import get_task_pose
 import matplotlib.pyplot as plt
+from pathlib import Path
 from scipy.signal import savgol_filter
 from utils import inverse_kinematics, compute_task_error, forward_kinematics
 from segment_merging_algorithm import segment_merging_algorithm, segment_merging_algorithm_no_average
 
 ######## Define initial parameters ###########
+dt = 1e-3
 num_segments = 1
 params = {"l": 1e-1 * np.ones((num_segments,))}
 # params = {"l": 0.15 * np.ones((num_segments,))}
@@ -59,6 +61,76 @@ for video in video_names:
 
 config_data = np.array(config_data_list).reshape((-1,20,3))
 pose_data = np.array(pose_data_list).reshape((-1,21,3))
+Chi_raw = np.copy(config_data)
+
+# number of time steps per video sequence
+T = int(pose_data.shape[0] / len(video_names))
+
+# filter the poses with Savotzky-Golay filter and differentiate to get velocities and accelerations
+Chi = savgol_filter(Chi_raw, 5*5, polyorder=3, deriv=0, axis=0)
+Chi_d = np.gradient(Chi, dt, axis=0, edge_order=2)
+# # the the velocity at the first time step to zero
+# Chi_d[::T] = 0.0
+print("Chi_d\n" , Chi_d)
+Chi_dd = np.gradient(Chi_d, dt, axis=0, edge_order=2)
+# # the the acceleration at the first time step to zero
+# Chi_dd[::T] = 0.0
+
+# concatenate the pose datasets
+Y = np.concatenate([Chi.reshape(Chi.shape[0], -1), Chi_d.reshape(Chi_d.shape[0], -1)], axis=-1)
+Y_d = np.concatenate([Chi_d.reshape(Chi_d.shape[0], -1), Chi_dd.reshape(Chi_dd.shape[0], -1)], axis=-1)
+print("Y shape: ", Y.shape, "Y_d shape: ", Y_d.shape)
+# save the data
+pose_dir = Path(f"results/ns-{num_segments}_high_shear_stiffness/pose_data")
+pose_dir.mkdir(parents=True, exist_ok=True)
+np.save(pose_dir / "Y.npy", Y)
+np.save(pose_dir / "Y_d.npy", Y_d)
+
+# plot the positions
+print("Config data shape: ", Chi.shape)
+ts = np.arange(0, Chi.shape[0]*dt, dt)
+plt.figure(num="End effector positions")
+# plot the raw data
+plt.plot(ts, Chi_raw[:,-1,0], linestyle=":", label='$x$')
+plt.plot(ts, Chi_raw[:,-1,1], linestyle=":", label='$y$')
+plt.plot(ts, Chi_raw[:,-1,2], linestyle=":", label='$z$')
+# reset the color cycle
+plt.gca().set_prop_cycle(None)
+# plot the filtered data
+plt.plot(ts, Chi[:,-1,0], label=r'$\tilde{x}$')
+plt.plot(ts, Chi[:,-1,1], label=r'$\tilde{y}$')
+plt.plot(ts, Chi[:,-1,2], label=r'$\tilde{z}$')
+plt.legend()
+plt.grid(True)
+plt.show()
+# plot the x-coordinates along the backbone
+plt.figure(num="Backbone x-coordinates")
+for i in range(Chi.shape[1]):
+    plt.plot(ts, Chi[:,i,0], label='seg:'+str(i))
+plt.xlabel('Time [s]')
+plt.ylabel('Position [m]')
+plt.legend()
+plt.grid(True)
+plt.show()
+# plot some x-velocities along the backbone
+plt.figure(num="Backbone x-velocities")
+for i in range(0, Chi.shape[1], 5):
+    plt.plot(ts, Chi_d[:,i,0], label='seg:'+str(i))
+plt.xlabel('Time [s]')
+plt.ylabel('Velocity [m/s]')
+plt.legend()
+plt.grid(True)
+plt.show()
+# plot some x-accelerations along the backbone
+plt.figure(num="Backbone x-accelerations")
+for i in range(0, Chi.shape[1], 5):
+    plt.plot(ts, Chi_dd[:,i,0], label='seg:'+str(i))
+plt.xlabel('Time [s]')
+plt.ylabel(r'Acceleration [m/s$^2$]')
+plt.legend()
+plt.grid(True)
+plt.show()
+
 
 # Just a comparison
 # pose_previous_frame = pose_data[:,0,:]
@@ -81,7 +153,6 @@ pose_data_iterations, error_metric_iterations = compute_task_error(pose_data, co
 if get_configurations:
     T, N_SEG, _ = config_data_iterations[-1].shape
     T = int(T / len(video_names))
-    dt = 1e-3
     for i, video in enumerate(video_names):
         q = np.zeros((T, N_SEG, 3))
         for seg in range(N_SEG):
@@ -91,7 +162,6 @@ if get_configurations:
                 else:
                     # q[:, seg, strain] = savgol_filter(config_data_iterations[-1][:, seg, strain], 201, polyorder=2, deriv=0, axis=0)
                     q[:, seg, strain] = savgol_filter(config_data_iterations[-1][i*T:(i+1)*T, seg, strain], 5*5, polyorder=3, deriv=0, axis=0)
-
 
         # q = savgol_filter(config_data_iterations[-1], 5*5, polyorder=3, deriv=0, axis=0)
         # q_d = savgol_filter(config_data, 6*5 + 1, polyorder=3, deriv=1, delta=dt, axis=0, mode='constant')
