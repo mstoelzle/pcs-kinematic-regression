@@ -7,11 +7,11 @@ from utils import inverse_kinematics, compute_task_error, forward_kinematics
 from segment_merging_algorithm import segment_merging_algorithm, segment_merging_algorithm_no_average
 
 ######## Define initial parameters ###########
-num_segments = 1
+num_segments = 2
 params = {"l": 1e-1 * np.ones((num_segments,))}
 # params = {"l": 0.15 * np.ones((num_segments,))}
 # params = {"l": np.array([0.05, 0.1, 0.06])}
-# params = {"l": np.array([0.07, 0.1])}
+params = {"l": np.array([0.07, 0.1])}
 params["total_length"] = np.sum(params["l"])
 # params = {"l": np.array([1e-1, 5e-2])}
 video_height = 2360
@@ -31,6 +31,8 @@ string_strains = ['Bending', 'Shear', 'Axial']
 
 # STEP 1: Check videos and actuation
 videos_folder = f"videos/ns-{num_segments}_high_shear_stiffness/"
+videos_folder = f"videos/ns-{num_segments}_noise_larger/"
+videos_folder = f"videos/ns-{num_segments}_end-to-end/"
 # videos_folder = f"videos/ns-{num_segments}_homogeneous/"
 # videos_folder = f"videos/ns-{num_segments}_test/"
 # videos_folder = f"videos/ns-{num_segments}_pac/"
@@ -133,5 +135,5 @@ if get_configurations:
         X.append(X_i)
         Xdot.append(Xdot_i)
 
-    np.save(f"results/ns-{num_segments}_high_shear_stiffness/config_data/" + "X.npy", X)
-    np.save(f"results/ns-{num_segments}_high_shear_stiffness/config_data/" + "Xdot.npy", Xdot)
+    np.save(f"results/ns-{num_segments}/config_data/" + "X.npy", X)
+    np.save(f"results/ns-{num_segments}/config_data/" + "Xdot.npy", Xdot)
