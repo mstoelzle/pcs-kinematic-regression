@@ -32,8 +32,8 @@ get_configurations = True
 string_strains = ['Bending', 'Shear', 'Axial']
 
 # STEP 1: Check videos and actuation
-videos_folder = f"videos/ns-{num_segments}_high_shear_stiffness/"
-videos_folder = f"videos/ns-{num_segments}_noise_larger/"
+# videos_folder = f"videos/ns-{num_segments}_high_shear_stiffness/"
+# videos_folder = f"videos/ns-{num_segments}_noise_larger/"
 videos_folder = f"videos/ns-{num_segments}_end-to-end/"
 # videos_folder = f"videos/ns-{num_segments}_homogeneous/"
 # videos_folder = f"videos/ns-{num_segments}_test/"
@@ -83,7 +83,7 @@ Y = np.concatenate([Chi.reshape(Chi.shape[0], -1), Chi_d.reshape(Chi_d.shape[0],
 Y_d = np.concatenate([Chi_d.reshape(Chi_d.shape[0], -1), Chi_dd.reshape(Chi_dd.shape[0], -1)], axis=-1)
 print("Y shape: ", Y.shape, "Y_d shape: ", Y_d.shape)
 # save the data
-pose_dir = Path(f"results/ns-{num_segments}_high_shear_stiffness/pose_data")
+pose_dir = Path(f"results/ns-{num_segments}/pose_data")
 pose_dir.mkdir(parents=True, exist_ok=True)
 np.save(pose_dir / "Y.npy", Y)
 np.save(pose_dir / "Y_d.npy", Y_d)
