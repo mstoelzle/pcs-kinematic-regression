@@ -86,7 +86,7 @@ print("Y shape: ", Y.shape, "Y_d shape: ", Y_d.shape)
 pose_dir = Path(f"results/ns-{num_segments}/pose_data")
 pose_dir.mkdir(parents=True, exist_ok=True)
 np.save(pose_dir / "Y.npy", Y)
-np.save(pose_dir / "Y_d.npy", Y_d)
+np.save(pose_dir / "Ydot.npy", Y_d)
 
 # plot the positions
 print("Config data shape: ", Chi.shape)
